@@ -1,6 +1,0 @@
-db.createUser({user: "admin",	pwd: "piknshiprockz",	roles: ["userAdmin", "dbAdmin", "readWrite"]})
-db.createUser({user: "webserver",	pwd: "piknshiprockz",	roles: ["readWrite"]})
-db.createUser({user: "tracking",	pwd: "piknshiprockz",	roles: ["readWrite"]})
-db.createUser({user: "jobscheduler",	pwd: "piknshiprockz",	roles: ["readWrite"]})
-db.createUser({user: "pushserver",	pwd: "piknshiprockz",	roles: ["readWrite"]})
-db.createUser({user: "analytics",	pwd: "piknshiprockz",	roles: ["readWrite"]})

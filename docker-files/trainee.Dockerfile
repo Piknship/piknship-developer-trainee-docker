@@ -1,4 +1,4 @@
-FROM buildpack-deps:18.04-scm as os
+FROM buildpack-deps:16.04-scm as os
 
 ENV TERM xterm
 ENV DEBIAN_FRONTEND noninteractive
@@ -59,74 +59,8 @@ RUN wget https://go.microsoft.com/fwlink/?LinkID=760868 -O code.deb \
 	&& rm -f code.deb
 RUN apt-get install -y chromium-browser
 
-FROM vscode as mongodb
 
-RUN groupadd -r mongodb && useradd -r -g mongodb mongodb
-
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		ca-certificates \
-		jq \
-		numactl \
-	; \
-	if ! command -v ps > /dev/null; then \
-		apt-get install -y --no-install-recommends procps; \
-	fi; \
-	rm -rf /var/lib/apt/lists/*
-
-ENV GPG_KEYS 9DA31620334BD75D9DCB49F368818C72E52529D4
-RUN set -ex; \
-	# export GNUPGHOME="$(mktemp -d)"; \
-	for key in $GPG_KEYS; do \
-		gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$key"; \
-	done; \
-	gpg --batch --export $GPG_KEYS > /etc/apt/trusted.gpg.d/mongodb.gpg; \
-	command -v gpgconf && gpgconf --kill all || :; \
-	# rm -r "$GNUPGHOME"; \
-	apt-key list
-
-ARG MONGO_PACKAGE=mongodb-org
-ARG MONGO_REPO=repo.mongodb.org
-ENV MONGO_PACKAGE=${MONGO_PACKAGE} MONGO_REPO=${MONGO_REPO}
-
-ENV MONGO_MAJOR 4.0
-ENV MONGO_VERSION 4.0.5
-
-RUN echo "deb http://$MONGO_REPO/apt/ubuntu bionic/${MONGO_PACKAGE%-unstable}/$MONGO_MAJOR multiverse" | tee "/etc/apt/sources.list.d/${MONGO_PACKAGE%-unstable}.list"
-
-RUN set -x \
-	&& apt-get update \
-	&& apt-get install -y \
-		${MONGO_PACKAGE}=$MONGO_VERSION \
-		${MONGO_PACKAGE}-server=$MONGO_VERSION \
-		${MONGO_PACKAGE}-shell=$MONGO_VERSION \
-		${MONGO_PACKAGE}-mongos=$MONGO_VERSION \
-		${MONGO_PACKAGE}-tools=$MONGO_VERSION \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& rm -rf /var/lib/mongodb \
-	&& mv /etc/mongod.conf /etc/mongod.conf.orig
-
-# Create Users
-
-FROM mongodb as golang
-RUN curl -O https://storage.googleapis.com/golang/go1.11.2.linux-amd64.tar.gz \
-	&& tar -xvf go1.11.2.linux-amd64.tar.gz \
-	&& mv go /usr/lib/thirdparty \
-	&& rm -f go1.11.2.linux-amd64.tar.gz
-
-RUN apt-get update && apt-get install -y libvips libvips-dev
-
-FROM golang as angular
-
-RUN curl --silent --location https://deb.nodesource.com/setup_10.x | bash - \
-&& apt-get install --yes nodejs build-essential
-
-RUN npm install -g @angular/cli
-
-RUN echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
-
-FROM angular as java
+FROM vscode as java
 
 RUN apt-get install -y --no-install-recommends \
     openjdk-8-jdk \
@@ -142,21 +76,17 @@ FROM java as androidsdk
 ENV ANDROID_STUDIO_HOME "/usr/lib/thirdparty/android-studio"
 ENV ANDROID_HOME "/usr/lib/thirdparty/android-sdk-linux"
 ENV GRADLE_HOME "/usr/lib/thirdparty/android-studio/gradle"
-# ENV SDK_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip" \
-# ENV GRADLE_URL="https://services.gradle.org/distributions/gradle-5.4.1-all.zip"
 ENV ANDROID_STUDIO_URL = "https://dl.google.com/dl/android/studio/ide-zips/3.4.1.0/android-studio-ide-183.5522156-linux.tar.gz"
 RUN echo "export ANDROID_HOME=/usr/lib/thirdparty/android-sdk-linux\nexport GRADLE_HOME=/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1\n" >> /root/env
 RUN echo "ANDROID_HOME=/usr/lib/thirdparty/android-sdk-linux\nGRADLE_HOME=/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1\n" >> /root/etc_env
+
 # Download Android SDK
-# WORKDIR /opt
-RUN echo "export GOPATH=/opt/piknship/code/piknship-go\n" >> /root/env
-RUN echo "GOPATH=/opt/piknship/code/piknship-go\n" >> /root/etc_env
-ENV GOPATH=/opt/piknship/code/piknship-go
 
-RUN echo "export PATH=/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:$GOPATH/bin:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:$ANDROID_HOME/platform-tools/bin:$ANDROID_HOME/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:$PATH\n" >> /root/env
-RUN echo "PATH=/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:$GOPATH/bin:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:$ANDROID_HOME/platform-tools/bin:$ANDROID_HOME/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:$PATH\n" >> /root/etc_env
 
-ENV PATH "/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:$GOPATH/bin:${ANDROID_HOME}/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:${ANDROID_HOME}/platform-tools/bin:${ANDROID_HOME}/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:${PATH}"
+RUN echo "export PATH=/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:$ANDROID_HOME/platform-tools/bin:$ANDROID_HOME/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:$PATH\n" >> /root/env
+RUN echo "PATH=/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:$ANDROID_HOME/platform-tools/bin:$ANDROID_HOME/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:$PATH\n" >> /root/etc_env
+
+ENV PATH "/usr/lib/thirdparty/go/bin:/usr/lib/thirdparty/flutter/bin:${ANDROID_HOME}/tools:$ANDROID_HOME/tools/bin:/usr/lib/thirdparty/android-studio/gradle/gradle-5.1.1/bin:${ANDROID_HOME}/platform-tools/bin:${ANDROID_HOME}/build-tools/bin:${ANDROID_HOME}/platform-tools/adb:/usr/lib/thirdparty/android-studio/bin:${PATH}"
 RUN cat /root/env >> /root/.bashrc
 RUN cat /root/etc_env > /etc/environment
 RUN apt-get -qqy update && apt-get install -y --no-install-recommends maven
@@ -166,11 +96,6 @@ RUN curl $ANDROID_STUDIO_URL > /opt/android-studio.tar.gz
 RUN tar -xvf /opt/android-studio.tar.gz -C /usr/lib/thirdparty
 RUN rm /opt/android-studio.tar.gz
 
-# Install Gradle 
-# RUN wget $GRADLE_URL -O gradle.zip \
-# && unzip gradle.zip \
-# && mv gradle-5.4.1 /usr/lib/thirdparty/android-studio/gradle \
-# && rm gradle.zip
 
 RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
     qemu-kvm \

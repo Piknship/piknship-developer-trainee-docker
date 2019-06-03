@@ -1,9 +1,6 @@
 
-docker-compose -f fullstack.yml up
+docker-compose -f trainee.yml up
 
-Run this command to launch android emulator:
-
-sudo /usr/lib/thirdparty/android-sdk-linux/emulator/emulator -avd phone
 
 Remove failed docker builds:
 

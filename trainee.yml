@@ -1,0 +1,65 @@
+version: '3.5'
+services:
+  trainee:
+    image: trainee
+    build: 
+      context: .
+      dockerfile: ./docker-files/trainee.Dockerfile
+      target: trainee
+      args:
+        WORKINGUSER: skorukonda
+    container_name: trainee
+    privileged: true
+    volumes:
+      - type: bind
+        source: c:/docker/fs/.vscode
+        target: /home/skorukonda/.vscode
+      - type: bind
+        source: c:/docker/fs/.android
+        target: /home/skorukonda/.android
+      - type: bind
+        source: c:/docker/fs/.pub-cache
+        target: /usr/lib/thirdparty/flutter/.pub-cache
+      - type: bind
+        source: c:/docker/fs/.config
+        target: /home/skorukonda/.config
+      - type: bind
+        source: c:/docker/fs/android-sdk-linux
+        target: /usr/lib/thirdparty/android-sdk-linux
+      - type: bind
+        source: c:/docker/db
+        target: /data/db
+      - type: bind
+        source: c:/docker/code
+        target: /opt/piknship/code
+      - type: bind
+        source: c:/docker/logs
+        target: /opt/piknship/logs
+
+    environment: 
+      - ROOT_PASSWORD=India@123
+      - WORKINGUSER=skorukonda
+      - WORKINGUSER_PASSWORD=India@123
+      - MONGO_INITDB_DATABASE=piknship
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=India@123
+    ports:
+      - "3389:3389"
+      - "1337:1337"
+      - "8000:8000"
+      - "80:80"
+      - "4200:4200"
+      - "27017:27017"
+      - "5055:5055"
+    tty: true
+    networks:
+      piknship:
+        ipv4_address: 172.20.0.2
+
+networks:
+  piknship:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+        # - gateway: 172.20.0.1
