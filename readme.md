@@ -1,5 +1,5 @@
 
-docker-compose -f trainee.yml up
+docker-compose -f trainee.yml up --build
 
 
 Remove failed docker builds:
